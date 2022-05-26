@@ -8,7 +8,10 @@ void set_initial_state(MenuState *st, int8_t lines_cnt) {
 	st->tag = MST_CHOOSE_LINE;
 	st->lines_cnt = lines_cnt;
 	st->line_num = 0;
+	st->line_cursor_pos = 0;
 	st->digit_num = 0;
+	st->digit_cursor_pos = 0;
+
 }
 
 void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas,
