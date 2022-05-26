@@ -1,6 +1,7 @@
 #include <LiquidCrystal.h>
 #include "menu.h"
 #include "my_time.h"
+#include "my_timer.h"
 #include <EEPROM.h>
 
 #define RS  2
@@ -34,12 +35,16 @@ void do_init();
 void do_process();
 void save_time_data();
 
+void timer_callback(uint16_t seconds);
+
 void setup() {  
 	do_init();
 }
 
 void loop() {	
-  do_process();
+	timer_process();
+
+  // do_process();
 }
 
 void do_init() {
@@ -60,6 +65,8 @@ void do_init() {
 	lcd.cursor();
 	lcd.blink();
 	redraw_display(true, true);
+	
+	timer_reset(&timer_callback);
 }
 
 void do_process() {
@@ -188,25 +195,22 @@ void redraw_display(bool menu_changed, bool value_changed) {
 void save_time_data() {
 	uint8_t total_size = sizeof(TimeData) * LINES_COUNT;
 	
-	// Serial.print("Size = ");
-	// Serial.println(total_size);
-	
 	uint8_t *ptr = (uint8_t*)lines_datas;
 	for (uint8_t i = 0; i < total_size; i++) {
 		EEPROM.update(i, ptr[i]);
 	}
-	// Serial.println("Saved");
 }
 
 void load_time_data() {
 	uint8_t total_size = sizeof(TimeData) * LINES_COUNT;
 	
-	// Serial.print("Size = ");
-	// Serial.println(total_size);
-	
 	uint8_t *ptr = (uint8_t*)lines_datas;
 	for (uint8_t i = 0; i < total_size; i++) {
 		ptr[i] = EEPROM.read(i);
 	}
-	// Serial.println("Loaded");
+}
+
+void timer_callback(uint16_t seconds) {
+	Serial.print("tick ");
+	Serial.println(seconds);
 }
