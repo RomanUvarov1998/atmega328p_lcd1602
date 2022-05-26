@@ -46,9 +46,9 @@ void do_init() {
   while (!Serial);
 	
 	// init_btns
-  DDRC &= ~(1 << DDC2);
   DDRC &= ~(1 << DDC3);
   DDRC &= ~(1 << DDC4);
+  DDRC &= ~(1 << DDC5);
   
 	set_initial_state(&menu_state, 3);
 	
@@ -97,7 +97,7 @@ void do_process() {
 uint8_t check_btns() {
   uint8_t prev_btns_state = btns_state;
 
-  btns_state = (PINC >> 2) & 0x07;
+  btns_state = (PINC >> 3) & 0x07;
 	
 	uint8_t diff = prev_btns_state ^ btns_state;
 	
