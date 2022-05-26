@@ -217,4 +217,11 @@ void load_time_data() {
 void timer_1sec_cbk(uint16_t seconds) {
 	mt_add_seconds(&current_time, 1);
 	mt_print(&current_time);
+	
+	for (uint8_t i = 0; i < LINES_COUNT; i++) {
+		if (mt_eq(&current_time, &lines_datas[i])) {
+			Serial.print(i);
+			Serial.println(" off");
+		}
+	}
 }
