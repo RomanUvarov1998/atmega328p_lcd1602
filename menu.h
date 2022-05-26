@@ -32,7 +32,8 @@ typedef enum {
 } BtnPress;
 
 void set_initial_state(MenuState *st, int8_t lines_cnt);
-void process_btn(MenuState *st, BtnPress btn, TimeData *lines_datas, bool *menu_changed, bool *value_changed);
+void process_btn(MenuState *st, BtnPress btn, TimeData *lines_datas, 
+	bool *menu_changed, bool *value_changed, bool *should_save);
 void dump(MenuState *st, TimeData *lines_datas);
 
 #endif // MENU_H_

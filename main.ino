@@ -1,6 +1,7 @@
 #include <LiquidCrystal.h>
 #include "menu.h"
 #include "my_time.h"
+#include <EEPROM.h>
 
 #define RS  2
 #define EN  3
@@ -19,8 +20,9 @@ typedef enum {
 
 uint8_t check_btns();
 
+#define LINES_COUNT 3
 MenuState menu_state;
-TimeData lines_datas[3] = {
+TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
 	{ .hh = 12, .mm = 34, .ss = 56 },
 	{ .hh = 12, .mm = 34, .ss = 56 },
@@ -29,6 +31,7 @@ TimeData lines_datas[3] = {
 void redraw_display(bool menu_changed, bool value_changed);
 void do_init();
 void do_process();
+void save_time_data();
 
 void setup() {  
 	do_init();
@@ -49,6 +52,8 @@ void do_init() {
   
 	set_initial_state(&menu_state, 3);
 	
+	load_time_data();
+	
   lcd.begin(16, 2);
   lcd.leftToRight();
 	lcd.cursor();
@@ -59,26 +64,31 @@ void do_init() {
 void do_process() {
 	uint8_t b_ev = check_btns();
 	
-	bool menu_changed = false, value_changed = false;
+	bool menu_changed = false, value_changed = false, should_save = false;
 	
-  BtnPress p;
 	switch (b_ev) {
-		case BE_LEFT: 	
-			Serial.println("BE_LEFT");
-			process_btn(&menu_state, BP_LEFT, lines_datas, &menu_changed, &value_changed);
+		case BE_LEFT:
+			process_btn(&menu_state, BP_LEFT, lines_datas, &menu_changed, &value_changed, &should_save);
 			break;
 
-		case BE_OK: 		
-			Serial.println("BE_OK");	
-			process_btn(&menu_state, BP_OK, lines_datas, &menu_changed, &value_changed);
+		case BE_OK:
+			process_btn(&menu_state, BP_OK, lines_datas, &menu_changed, &value_changed, &should_save);
 			break;
 
-		case BE_RIGHT: 	
-			Serial.println("BE_RIGHT");	
-			process_btn(&menu_state, BP_RIGHT, lines_datas, &menu_changed, &value_changed);
+		case BE_RIGHT:
+			process_btn(&menu_state, BP_RIGHT, lines_datas, &menu_changed, &value_changed, &should_save);
 			break;
 			
 		default: return;
+	}
+	
+	if (should_save) {
+		save_time_data();
+		
+		lcd.setCursor(0, 1);
+		lcd.print("Saved!          ");
+		
+		delay(800);
 	}
 	
 	redraw_display(menu_changed, value_changed);
@@ -110,12 +120,16 @@ void redraw_display(bool menu_changed, bool value_changed) {
 				
 			case MST_CHOOSE_DIGIT: 
 				lcd.setCursor(0, 0);
-				lcd.print("Choose digit:   ");
+				lcd.print("Choose: (line ");
+				lcd.print(menu_state.line_num);
+				lcd.print(")");
 				break;
 				
 			case MST_SET_VALUE:
 				lcd.setCursor(0, 0);
-				lcd.print("Set digit:      ");
+				lcd.print("Set:    (line ");
+				lcd.print(menu_state.line_num);
+				lcd.print(")");
 				break;
 			
 		}
@@ -125,25 +139,32 @@ void redraw_display(bool menu_changed, bool value_changed) {
 	if (value_changed) {
 		switch (menu_state.tag) {
 		
-		case MST_CHOOSE_LINE:			
-			lcd.setCursor(0, 1);
-			lcd.print("1 2 3           ");
-			break;
-			
-		case MST_CHOOSE_DIGIT: 
-		case MST_SET_VALUE:
-			lcd.setCursor(0, 1);
-			lcd.print(lines_datas[menu_state.line_num].hh / 10);
-			lcd.print(lines_datas[menu_state.line_num].hh % 10);
-			lcd.print(":");
-			lcd.print(lines_datas[menu_state.line_num].mm / 10);
-			lcd.print(lines_datas[menu_state.line_num].mm % 10);
-			lcd.print(":");
-			lcd.print(lines_datas[menu_state.line_num].ss / 10);
-			lcd.print(lines_datas[menu_state.line_num].ss % 10);
-			lcd.print(" >");
-			lcd.print("      ");
-			break;
+			case MST_CHOOSE_LINE:
+				lcd.setCursor(0, 1);
+				uint8_t line_i, col_i;
+				for (line_i = 1, col_i = 0; line_i <= LINES_COUNT && col_i < 16; line_i++, col_i += 2) {
+					lcd.print(line_i);
+					lcd.print(" ");
+				}
+				for (; col_i < 16; col_i++) {
+					lcd.print(" ");
+				}
+				break;
+				
+			case MST_CHOOSE_DIGIT: 
+			case MST_SET_VALUE:
+				lcd.setCursor(0, 1);
+				lcd.print(lines_datas[menu_state.line_num].hh / 10);
+				lcd.print(lines_datas[menu_state.line_num].hh % 10);
+				lcd.print(":");
+				lcd.print(lines_datas[menu_state.line_num].mm / 10);
+				lcd.print(lines_datas[menu_state.line_num].mm % 10);
+				lcd.print(":");
+				lcd.print(lines_datas[menu_state.line_num].ss / 10);
+				lcd.print(lines_datas[menu_state.line_num].ss % 10);
+				lcd.print(" >");
+				lcd.print("      ");
+				break;
 			
 		}
 	}
@@ -161,4 +182,30 @@ void redraw_display(bool menu_changed, bool value_changed) {
 			break;
 			
 	}
+}
+
+void save_time_data() {
+	uint8_t total_size = sizeof(TimeData) * LINES_COUNT;
+	
+	// Serial.print("Size = ");
+	// Serial.println(total_size);
+	
+	uint8_t *ptr = (uint8_t*)lines_datas;
+	for (uint8_t i = 0; i < total_size; i++) {
+		EEPROM.update(i, ptr[i]);
+	}
+	// Serial.println("Saved");
+}
+
+void load_time_data() {
+	uint8_t total_size = sizeof(TimeData) * LINES_COUNT;
+	
+	// Serial.print("Size = ");
+	// Serial.println(total_size);
+	
+	uint8_t *ptr = (uint8_t*)lines_datas;
+	for (uint8_t i = 0; i < total_size; i++) {
+		ptr[i] = EEPROM.read(i);
+	}
+	// Serial.println("Loaded");
 }
