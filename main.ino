@@ -21,6 +21,7 @@ typedef enum {
 uint8_t check_btns();
 
 #define LINES_COUNT 3
+static_assert(1 <= LINES_COUNT && LINES_COUNT <= 8, "Число линий может быть только от 1 до 8 включительно");
 MenuState menu_state;
 TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
@@ -121,14 +122,14 @@ void redraw_display(bool menu_changed, bool value_changed) {
 			case MST_CHOOSE_DIGIT: 
 				lcd.setCursor(0, 0);
 				lcd.print("Choose: (line ");
-				lcd.print(menu_state.line_num);
+				lcd.print(menu_state.line_num + 1);
 				lcd.print(")");
 				break;
 				
 			case MST_SET_VALUE:
 				lcd.setCursor(0, 0);
 				lcd.print("Set:    (line ");
-				lcd.print(menu_state.line_num);
+				lcd.print(menu_state.line_num + 1);
 				lcd.print(")");
 				break;
 			
