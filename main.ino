@@ -30,12 +30,14 @@ TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
 };
 
+TimeData current_time;
+
 void redraw_display(bool menu_changed, bool value_changed);
 void do_init();
 void do_process();
 void save_time_data();
 
-void timer_callback(uint16_t seconds);
+void timer_1sec_cbk(uint16_t seconds);
 
 void setup() {  
 	do_init();
@@ -66,7 +68,9 @@ void do_init() {
 	lcd.blink();
 	redraw_display(true, true);
 	
-	timer_reset(&timer_callback);
+	current_time = mt_create_zero();
+	
+	timer_reset(&timer_1sec_cbk);
 }
 
 void do_process() {
@@ -210,7 +214,7 @@ void load_time_data() {
 	}
 }
 
-void timer_callback(uint16_t seconds) {
-	Serial.print("tick ");
-	Serial.println(seconds);
+void timer_1sec_cbk(uint16_t seconds) {
+	mt_add_seconds(&current_time, 1);
+	mt_print(&current_time);
 }

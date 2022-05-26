@@ -112,12 +112,12 @@ static void move_digit(MenuState *st, BtnPress btn, TimeData *time_data) {
 	delta = (int8_t)btn;
 	
 	switch (st->digit_num) {
-		case 0: add_hours(time_data, delta * 10); break;
-		case 1: add_hours(time_data, delta); break;
-		case 2: add_minutes(time_data, delta * 10); break;
-		case 3: add_minutes(time_data, delta); break;
-		case 4: add_seconds(time_data, delta * 10); break;
-		case 5: add_seconds(time_data, delta); break;
+		case 0: mt_add_hours(time_data, delta * 10); break;
+		case 1: mt_add_hours(time_data, delta); break;
+		case 2: mt_add_minutes(time_data, delta * 10); break;
+		case 3: mt_add_minutes(time_data, delta); break;
+		case 4: mt_add_seconds(time_data, delta * 10); break;
+		case 5: mt_add_seconds(time_data, delta); break;
 	}
 }
 
@@ -149,11 +149,7 @@ void dump(MenuState *st, TimeData *time_datas) {
 		case MST_SET_VALUE:
 			Serial.print("MST_SET_VALUE, digit: ");
 			Serial.println(st->digit_num);
-			Serial.print(time_datas[st->line_num].hh);
-			Serial.print(":");
-			Serial.print(time_datas[st->line_num].mm);
-			Serial.print(":");
-			Serial.println(time_datas[st->line_num].hh);
+			mt_print(&time_datas[st->line_num]);
 			break;
 			
 	}

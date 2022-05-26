@@ -2,6 +2,7 @@
 #define MY_TIME_H_
 
 #include <stdint.h>
+#include <Arduino.h>
 
 typedef struct {
 	int8_t hh;
@@ -9,8 +10,10 @@ typedef struct {
 	int8_t ss;
 } TimeData;
 
-void add_hours(TimeData *td, int8_t dh);
-void add_minutes(TimeData *td, int8_t dm);
-void add_seconds(TimeData *td, int8_t ds);
+TimeData mt_create_zero();
+void mt_add_hours(TimeData *td, int8_t dh);
+void mt_add_minutes(TimeData *td, int8_t dm);
+void mt_add_seconds(TimeData *td, int8_t ds);
+void mt_print(TimeData *td);
 
 #endif // MY_TIME_H_
