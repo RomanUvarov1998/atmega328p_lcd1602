@@ -3,6 +3,7 @@
 #include "my_time.h"
 #include "my_timer.h"
 #include <EEPROM.h>
+#include "lines.h"
 
 #define RS  2
 #define EN  3
@@ -67,6 +68,7 @@ void do_init() {
 	redraw_display(CM_Menu | CM_Value | CM_CursorPos);
 	
 	timer_1000 = ti_create(&timer_1000_cbk, 1000);
+	lines_init();
 }
 
 void do_process() {
@@ -95,8 +97,17 @@ void do_process() {
 		delay(800);
 	}
 	
-	if (change_msk & CM_IsRunning && menu_state.is_running) {
-		ti_reset(&timer_1000);
+	if (change_msk & CM_IsRunning) {
+		if (menu_state.is_running) {
+			ti_reset(&timer_1000);
+			for (uint8_t i = 0; i < LINES_COUNT; i++) {
+				lines_set(i, true);
+			}
+		} else {
+			for (uint8_t i = 0; i < LINES_COUNT; i++) {
+				lines_set(i, false);
+			}
+		}
 	}
 	
 	if (time_changed) {
@@ -176,6 +187,10 @@ void redraw_display(uint8_t change_msk) {
 					lcd.print(line_i);
 					lcd.print(" ");
 				}
+				
+				lcd.print("Start");
+				col_i += 5;
+				
 				for (; col_i < 16; col_i++) {
 					lcd.print(" ");
 				}
@@ -237,14 +252,15 @@ void load_time_data() {
 void timer_1000_cbk() {
 	if (!menu_state.is_running) return;
 	
-	bool has_unfinished_lines = false;
-	
 	for (uint8_t i = 0; i < LINES_COUNT; i++) {
 		if (mt_eq(&timer_1000.time, &lines_datas[i])) {
-			Serial.print(i);
-			Serial.println(" off");
+			lines_set(i, false);
 		}
+	}
+	
+	bool has_unfinished_lines = false;
 		
+	for (uint8_t i = 0; i < LINES_COUNT; i++) {
 		if (mt_less(&timer_1000.time, &lines_datas[i])) {
 			has_unfinished_lines = true;
 		}
@@ -252,6 +268,10 @@ void timer_1000_cbk() {
 	
 	if (!has_unfinished_lines) {
 		menu_state.is_running = false;
+		redraw_display(CM_Menu | CM_Menu | CM_CursorPos);
+		for (uint8_t i = 0; i < LINES_COUNT; i++) {
+			lines_set(i, false);
+		}
 	}
 	
 	time_changed = true;

@@ -58,5 +58,5 @@ bool mt_eq(TimeData *td1, TimeData *td2) {
 bool mt_less(TimeData *td1, TimeData *td2) {
 	return 	td1->hh < td2->hh ||
 					td1->hh == td2->hh && td1->mm < td2->mm ||
-					td1->hh == td2->hh && td1->mm == td2->mm || td1->ss < td2->ss;
+					td1->hh == td2->hh && td1->mm == td2->mm && td1->ss < td2->ss;
 }
