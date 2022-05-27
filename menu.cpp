@@ -11,6 +11,7 @@ void set_initial_state(MenuState *st, int8_t lines_cnt) {
 	st->line_cursor_pos = 0;
 	st->digit_num = 0;
 	st->digit_cursor_pos = 0;
+	st->is_running = false;
 
 }
 
@@ -18,6 +19,16 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 {
 	*should_save = false;
 	*change_msk |= CM_CursorPos;
+	*change_msk &= ~CM_IsRunning;
+	
+	if (st->is_running && btn == BP_OK) {
+		*change_msk |= CM_IsRunning;
+		*change_msk |= CM_Menu;
+		*change_msk |= CM_Value;
+		*change_msk |= CM_CursorPos;
+		st->is_running = false;
+		return;
+	}
 	
 	switch (st->tag) {
 		
@@ -28,8 +39,8 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 				case BP_RIGHT:
 					st->line_num += (int8_t)btn;
 					if (st->line_num < 0) {
-						st->line_num = st->lines_cnt - 1;
-					} else if (st->line_num >= st->lines_cnt) {
+						st->line_num = st->lines_cnt;
+					} else if (st->line_num > st->lines_cnt) {
 						st->line_num = 0;
 					}
 					st->line_cursor_pos = st->line_num * 2;
@@ -38,11 +49,18 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 					break;
 
 				case BP_OK:
-					st->tag = MST_CHOOSE_DIGIT;
-					st->digit_num = 0;
-					st->digit_cursor_pos = get_digit_cursor_pos(st);
-					*change_msk |= CM_Menu;
-					*change_msk |= CM_Value;
+					if (st->line_num == st->lines_cnt) {
+						st->is_running = !st->is_running;
+						*change_msk |= CM_IsRunning;
+						*change_msk |= CM_Menu;
+						*change_msk |= CM_Value;
+					} else {
+						st->tag = MST_CHOOSE_DIGIT;
+						st->digit_num = 0;
+						st->digit_cursor_pos = get_digit_cursor_pos(st);
+						*change_msk |= CM_Menu;
+						*change_msk |= CM_Value;
+					}
 					break;
 				
 			}

@@ -1,19 +1,20 @@
 #include "my_timer.h"
 
 TimerInfo ti_create(TimerCbk cbk, uint16_t period_ms) {
-	return (TimerInfo) {
+	TimerInfo ti = {
 		.cbk = cbk,
 		.curr_millis = 0,
 		.passed_millis = 0,
-		.passed_seconds = 0,
 		.period_ms = period_ms,
 	};
+	ti.time = mt_create_zero();
+	return ti;
 }
 
 void ti_reset(TimerInfo *ti) {
-	ti->curr_millis = 0;
+	ti->curr_millis = millis();
 	ti->passed_millis = 0;
-	ti->passed_seconds = 0;
+	ti->time = mt_create_zero();
 }
 
 void ti_process(TimerInfo *ti) {
@@ -31,8 +32,8 @@ void ti_process(TimerInfo *ti) {
 	
 	if (ti->passed_millis > ti->period_ms) {
 		ti->passed_millis -= ti->period_ms;
-		ti->passed_seconds++;
+		mt_add_seconds(&ti->time, 1);
 		
-		ti->cbk(ti->passed_seconds);
+		ti->cbk();
 	}
 }

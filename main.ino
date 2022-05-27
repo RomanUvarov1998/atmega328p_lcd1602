@@ -19,8 +19,8 @@ uint8_t btns_state = 0x00;
 
 uint8_t get_check_btns_msk();
 
-#define LINES_COUNT 3
-static_assert(1 <= LINES_COUNT && LINES_COUNT <= 8, "Число линий может быть только от 1 до 8 включительно");
+#define LINES_COUNT 5
+static_assert(1 <= LINES_COUNT && LINES_COUNT <= 7, "Число линий может быть только от 1 до 7 включительно");
 MenuState menu_state;
 TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
@@ -28,27 +28,22 @@ TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
 };
 
-TimeData current_time;
-
 TimerInfo timer_1000;
-TimerInfo timer_500;
 
 void redraw_display(uint8_t change_msk);
 void do_init();
 void do_process();
 void save_time_data();
 
-void timer_1000_cbk(uint16_t seconds);
-void timer_500_cbk(uint16_t seconds);
+void timer_1000_cbk();
+bool time_changed = false;
 
 void setup() {  
 	do_init();
 }
 
 void loop() {	
-	ti_process(&timer_500);
 	ti_process(&timer_1000);
-
   do_process();
 }
 
@@ -61,7 +56,7 @@ void do_init() {
   DDRC &= ~(1 << DDC4);
   DDRC &= ~(1 << DDC5);
   
-	set_initial_state(&menu_state, 3);
+	set_initial_state(&menu_state, LINES_COUNT);
 	
 	load_time_data();
 	
@@ -71,26 +66,25 @@ void do_init() {
 	lcd.blink();
 	redraw_display(CM_Menu | CM_Value | CM_CursorPos);
 	
-	current_time = mt_create_zero();
-	
 	timer_1000 = ti_create(&timer_1000_cbk, 1000);
-	timer_500 = ti_create(&timer_500_cbk, 500);
 }
 
 void do_process() {
 	uint8_t b_ev = get_check_btns_msk();
 	
-	BtnPress b_ev_value;
+	BtnPress bp;
 	switch (b_ev) {
-		case BTN_MSK_LEFT: 	b_ev_value = BP_LEFT; 	break;
-		case BTN_MSK_OK: 		b_ev_value = BP_OK; 		break;
-		case BTN_MSK_RIGHT:	b_ev_value = BP_RIGHT; 	break;
-		default: return;
+		case BTN_MSK_LEFT: 	bp = BP_LEFT; 	break;
+		case BTN_MSK_OK: 		bp = BP_OK; 		break;
+		case BTN_MSK_RIGHT:	bp = BP_RIGHT; 	break;
+		default: bp = 2;
 	}
 	
 	uint8_t change_msk = 0;
 	bool should_save = false;
-	process_btn(&menu_state, b_ev_value, lines_datas, &change_msk, &should_save);
+	if (bp != 2) {
+		process_btn(&menu_state, bp, lines_datas, &change_msk, &should_save);
+	}
 	
 	if (should_save) {
 		save_time_data();
@@ -99,6 +93,15 @@ void do_process() {
 		lcd.print("Saved!          ");
 		
 		delay(800);
+	}
+	
+	if (change_msk & CM_IsRunning && menu_state.is_running) {
+		ti_reset(&timer_1000);
+	}
+	
+	if (time_changed) {
+		change_msk |= CM_Value;
+		time_changed = false;
 	}
 	
 	redraw_display(change_msk);
@@ -119,6 +122,23 @@ uint8_t get_check_btns_msk() {
 }
 
 void redraw_display(uint8_t change_msk) {
+	if (menu_state.is_running) {
+		lcd.setCursor(0, 0);
+		lcd.print("Press OK to stop");
+		
+		lcd.setCursor(0, 1);
+		lcd.print(timer_1000.time.hh / 10);
+		lcd.print(timer_1000.time.hh % 10);
+		lcd.print(":");
+		lcd.print(timer_1000.time.mm / 10);
+		lcd.print(timer_1000.time.mm % 10);
+		lcd.print(":");
+		lcd.print(timer_1000.time.ss / 10);
+		lcd.print(timer_1000.time.ss % 10);
+		lcd.print("        ");
+		return;
+	}
+	
 	// Menu title
 	if (change_msk & CM_Menu) {
 		switch (menu_state.tag) {
@@ -214,20 +234,25 @@ void load_time_data() {
 	}
 }
 
-void timer_1000_cbk(uint16_t seconds) {
-	// mt_add_seconds(&current_time, 1);
-	// mt_print(&current_time);
+void timer_1000_cbk() {
+	if (!menu_state.is_running) return;
 	
-	// for (uint8_t i = 0; i < LINES_COUNT; i++) {
-		// if (mt_eq(&current_time, &lines_datas[i])) {
-			// Serial.print(i);
-			// Serial.println(" off");
-		// }
-	// }
+	bool has_unfinished_lines = false;
 	
-	Serial.println(seconds);
-}
-
-void timer_500_cbk(uint16_t seconds) {
-	Serial.println("0.5");
+	for (uint8_t i = 0; i < LINES_COUNT; i++) {
+		if (mt_eq(&timer_1000.time, &lines_datas[i])) {
+			Serial.print(i);
+			Serial.println(" off");
+		}
+		
+		if (mt_less(&timer_1000.time, &lines_datas[i])) {
+			has_unfinished_lines = true;
+		}
+	}
+	
+	if (!has_unfinished_lines) {
+		menu_state.is_running = false;
+	}
+	
+	time_changed = true;
 }

@@ -2,15 +2,16 @@
 #define MY_TIMER_H_
 
 #include <Arduino.h>
+#include "my_time.h"
 
-typedef void (*TimerCbk)(uint16_t);
+typedef void (*TimerCbk)();
 
 typedef struct {
 	TimerCbk cbk;
 	uint16_t curr_millis;
 	uint16_t passed_millis;
-	uint16_t passed_seconds;
 	uint16_t period_ms;
+	TimeData time;
 } TimerInfo;
 
 TimerInfo ti_create(TimerCbk cbk, uint16_t period_ms);

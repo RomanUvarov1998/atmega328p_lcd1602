@@ -23,6 +23,7 @@ typedef struct {
 	int8_t line_cursor_pos;
 	int8_t digit_num;
 	int8_t digit_cursor_pos;
+	bool is_running;
 } MenuState;
 
 typedef enum {
@@ -39,6 +40,7 @@ typedef enum {
 	CM_Menu = 0x01,
 	CM_Value = 0x02,
 	CM_CursorPos = 0x04,
+	CM_IsRunning = 0x08,
 } ChangeMsk;
 
 #endif // MENU_H_
