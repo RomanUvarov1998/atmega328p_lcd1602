@@ -32,19 +32,23 @@ TimeData lines_datas[LINES_COUNT] = {
 
 TimeData current_time;
 
+TimerInfo timer_1000;
+TimerInfo timer_500;
+
 void redraw_display(bool menu_changed, bool value_changed);
 void do_init();
 void do_process();
 void save_time_data();
 
-void timer_1sec_cbk(uint16_t seconds);
+void timer_1000_cbk(uint16_t seconds);
 
 void setup() {  
 	do_init();
 }
 
 void loop() {	
-	timer_process();
+	ti_process(&timer_1000);
+	ti_process(&timer_500);
 
   // do_process();
 }
@@ -70,7 +74,8 @@ void do_init() {
 	
 	current_time = mt_create_zero();
 	
-	timer_reset(&timer_1sec_cbk);
+	timer_1000 = ti_create(&timer_1000_cbk, 1000);
+	timer_500 = ti_create(&timer_500_cbk, 500);
 }
 
 void do_process() {
@@ -214,14 +219,20 @@ void load_time_data() {
 	}
 }
 
-void timer_1sec_cbk(uint16_t seconds) {
-	mt_add_seconds(&current_time, 1);
-	mt_print(&current_time);
+void timer_1000_cbk(uint16_t seconds) {
+	// mt_add_seconds(&current_time, 1);
+	// mt_print(&current_time);
 	
-	for (uint8_t i = 0; i < LINES_COUNT; i++) {
-		if (mt_eq(&current_time, &lines_datas[i])) {
-			Serial.print(i);
-			Serial.println(" off");
-		}
-	}
+	// for (uint8_t i = 0; i < LINES_COUNT; i++) {
+		// if (mt_eq(&current_time, &lines_datas[i])) {
+			// Serial.print(i);
+			// Serial.println(" off");
+		// }
+	// }
+	
+	Serial.println(seconds);
+}
+
+void timer_500_cbk(uint16_t seconds) {
+	Serial.println("0.5");
 }
