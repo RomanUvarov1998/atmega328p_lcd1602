@@ -13,13 +13,11 @@
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 uint8_t btns_state = 0x00;
-typedef enum {
-	BE_LEFT = 0x04,
-	BE_OK = 0x02,
-	BE_RIGHT = 0x01,
-} BtnEvent;
+#define	BTN_MSK_LEFT 		0x04
+#define	BTN_MSK_OK 			0x02
+#define	BTN_MSK_RIGHT 	0x01
 
-uint8_t check_btns();
+uint8_t get_check_btns_msk();
 
 #define LINES_COUNT 3
 static_assert(1 <= LINES_COUNT && LINES_COUNT <= 8, "Число линий может быть только от 1 до 8 включительно");
@@ -35,22 +33,23 @@ TimeData current_time;
 TimerInfo timer_1000;
 TimerInfo timer_500;
 
-void redraw_display(bool menu_changed, bool value_changed);
+void redraw_display(uint8_t change_msk);
 void do_init();
 void do_process();
 void save_time_data();
 
 void timer_1000_cbk(uint16_t seconds);
+void timer_500_cbk(uint16_t seconds);
 
 void setup() {  
 	do_init();
 }
 
 void loop() {	
-	ti_process(&timer_1000);
 	ti_process(&timer_500);
+	ti_process(&timer_1000);
 
-  // do_process();
+  do_process();
 }
 
 void do_init() {
@@ -70,7 +69,7 @@ void do_init() {
   lcd.leftToRight();
 	lcd.cursor();
 	lcd.blink();
-	redraw_display(true, true);
+	redraw_display(CM_Menu | CM_Value | CM_CursorPos);
 	
 	current_time = mt_create_zero();
 	
@@ -79,25 +78,19 @@ void do_init() {
 }
 
 void do_process() {
-	uint8_t b_ev = check_btns();
+	uint8_t b_ev = get_check_btns_msk();
 	
-	bool menu_changed = false, value_changed = false, should_save = false;
-	
+	BtnPress b_ev_value;
 	switch (b_ev) {
-		case BE_LEFT:
-			process_btn(&menu_state, BP_LEFT, lines_datas, &menu_changed, &value_changed, &should_save);
-			break;
-
-		case BE_OK:
-			process_btn(&menu_state, BP_OK, lines_datas, &menu_changed, &value_changed, &should_save);
-			break;
-
-		case BE_RIGHT:
-			process_btn(&menu_state, BP_RIGHT, lines_datas, &menu_changed, &value_changed, &should_save);
-			break;
-			
+		case BTN_MSK_LEFT: 	b_ev_value = BP_LEFT; 	break;
+		case BTN_MSK_OK: 		b_ev_value = BP_OK; 		break;
+		case BTN_MSK_RIGHT:	b_ev_value = BP_RIGHT; 	break;
 		default: return;
 	}
+	
+	uint8_t change_msk = 0;
+	bool should_save = false;
+	process_btn(&menu_state, b_ev_value, lines_datas, &change_msk, &should_save);
 	
 	if (should_save) {
 		save_time_data();
@@ -108,10 +101,10 @@ void do_process() {
 		delay(800);
 	}
 	
-	redraw_display(menu_changed, value_changed);
+	redraw_display(change_msk);
 }
 
-uint8_t check_btns() {
+uint8_t get_check_btns_msk() {
   uint8_t prev_btns_state = btns_state;
 
   btns_state = (PINC >> 3) & 0x07;
@@ -125,9 +118,9 @@ uint8_t check_btns() {
 	}
 }
 
-void redraw_display(bool menu_changed, bool value_changed) {
+void redraw_display(uint8_t change_msk) {
 	// Menu title
-	if (menu_changed) {
+	if (change_msk & CM_Menu) {
 		switch (menu_state.tag) {
 		
 			case MST_CHOOSE_LINE:
@@ -153,7 +146,7 @@ void redraw_display(bool menu_changed, bool value_changed) {
 	}
 	
 	// Value
-	if (value_changed) {
+	if (change_msk & CM_Value) {
 		switch (menu_state.tag) {
 		
 			case MST_CHOOSE_LINE:
@@ -187,17 +180,19 @@ void redraw_display(bool menu_changed, bool value_changed) {
 	}
 	
 	// Cursor
-	switch (menu_state.tag) {
-		
-		case MST_CHOOSE_LINE:
-			lcd.setCursor(menu_state.line_cursor_pos, 1);
-			break;
+	if (change_msk & CM_CursorPos) {
+		switch (menu_state.tag) {
 			
-		case MST_CHOOSE_DIGIT: 
-		case MST_SET_VALUE:
-			lcd.setCursor(menu_state.digit_cursor_pos, 1);
-			break;
-			
+			case MST_CHOOSE_LINE:
+				lcd.setCursor(menu_state.line_cursor_pos, 1);
+				break;
+				
+			case MST_CHOOSE_DIGIT: 
+			case MST_SET_VALUE:
+				lcd.setCursor(menu_state.digit_cursor_pos, 1);
+				break;
+				
+		}
 	}
 }
 

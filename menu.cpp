@@ -14,10 +14,10 @@ void set_initial_state(MenuState *st, int8_t lines_cnt) {
 
 }
 
-void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas,
-	bool *menu_changed, bool *value_changed, bool *should_save)
+void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *change_msk, bool *should_save)
 {
 	*should_save = false;
+	*change_msk |= CM_CursorPos;
 	
 	switch (st->tag) {
 		
@@ -33,16 +33,16 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas,
 						st->line_num = 0;
 					}
 					st->line_cursor_pos = st->line_num * 2;
-					*menu_changed = false;
-					*value_changed = false;
+					*change_msk &= ~CM_Menu;
+					*change_msk &= ~CM_Value;
 					break;
 
 				case BP_OK:
 					st->tag = MST_CHOOSE_DIGIT;
 					st->digit_num = 0;
 					st->digit_cursor_pos = get_digit_cursor_pos(st);
-					*menu_changed = true;
-					*value_changed = true;
+					*change_msk |= CM_Menu;
+					*change_msk |= CM_Value;
 					break;
 				
 			}
@@ -60,24 +60,24 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas,
 						st->digit_num = 0;
 					}
 					st->digit_cursor_pos = get_digit_cursor_pos(st);
-					*menu_changed = false;
-					*value_changed = false;
+					*change_msk &= ~CM_Menu;
+					*change_msk &= ~CM_Value;
 					break;
 
 				case BP_OK:
 					if (st->digit_num == DIGITS_COUNT) {
 						st->tag = MST_CHOOSE_LINE;
 						st->line_num = 0;
-						*menu_changed = true;
-						*value_changed = true;
+						*change_msk |= CM_Menu;
+						*change_msk |= CM_Value;
 						if (has_unsaved_changes) {
 							*should_save = true;
 							has_unsaved_changes = false;
 						}
 					} else {
 						st->tag = MST_SET_VALUE;
-						*menu_changed = true;
-						*value_changed = false;
+						*change_msk |= CM_Menu;
+						*change_msk &= ~CM_Value;
 					}
 					break;
 				
@@ -90,15 +90,15 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas,
 				case BP_LEFT:
 				case BP_RIGHT:
 					move_digit(st, btn, &time_datas[st->line_num]);
-					*menu_changed = false;
-					*value_changed = true;
+					*change_msk &= ~CM_Menu;
+					*change_msk |= CM_Value;
 					has_unsaved_changes = true;
 					break;
 
 				case BP_OK:
 					st->tag = MST_CHOOSE_DIGIT;
-					*menu_changed = true;
-					*value_changed = false;
+					*change_msk |= CM_Menu;
+					*change_msk &= ~CM_Value;
 					break;
 				
 			}

@@ -32,8 +32,13 @@ typedef enum {
 } BtnPress;
 
 void set_initial_state(MenuState *st, int8_t lines_cnt);
-void process_btn(MenuState *st, BtnPress btn, TimeData *lines_datas, 
-	bool *menu_changed, bool *value_changed, bool *should_save);
+void process_btn(MenuState *st, BtnPress btn, TimeData *lines_datas, uint8_t *change_msk, bool *should_save);
 void dump(MenuState *st, TimeData *lines_datas);
+
+typedef enum {
+	CM_Menu = 0x01,
+	CM_Value = 0x02,
+	CM_CursorPos = 0x04,
+} ChangeMsk;
 
 #endif // MENU_H_
