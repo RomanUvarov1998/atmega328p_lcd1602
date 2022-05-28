@@ -30,6 +30,7 @@ TimeData lines_datas[LINES_COUNT] = {
 };
 
 TimerInfo timer_1000;
+TimeData countdown_time;
 
 void redraw_display(uint8_t change_msk);
 void do_init();
@@ -44,7 +45,6 @@ void setup() {
 }
 
 void loop() {	
-	ti_process(&timer_1000);
   do_process();
 }
 
@@ -103,11 +103,22 @@ void do_process() {
 			for (uint8_t i = 0; i < LINES_COUNT; i++) {
 				lines_set(i, true);
 			}
+			
+			countdown_time = lines_datas[0];
+			for (uint8_t i = 1; i < LINES_COUNT; i++) {
+				if (mt_less(&countdown_time, &lines_datas[i])) {
+					countdown_time = lines_datas[i];
+				}
+			}
 		} else {
 			for (uint8_t i = 0; i < LINES_COUNT; i++) {
 				lines_set(i, false);
 			}
 		}
+	}
+	
+	if (menu_state.is_running) {
+		ti_process(&timer_1000);
 	}
 	
 	if (time_changed) {
@@ -138,15 +149,16 @@ void redraw_display(uint8_t change_msk) {
 		lcd.print("Press OK to stop");
 		
 		lcd.setCursor(0, 1);
-		lcd.print(timer_1000.time.hh / 10);
-		lcd.print(timer_1000.time.hh % 10);
+		lcd.print(countdown_time.hh / 10);
+		lcd.print(countdown_time.hh % 10);
 		lcd.print(":");
-		lcd.print(timer_1000.time.mm / 10);
-		lcd.print(timer_1000.time.mm % 10);
+		lcd.print(countdown_time.mm / 10);
+		lcd.print(countdown_time.mm % 10);
 		lcd.print(":");
-		lcd.print(timer_1000.time.ss / 10);
-		lcd.print(timer_1000.time.ss % 10);
+		lcd.print(countdown_time.ss / 10);
+		lcd.print(countdown_time.ss % 10);
 		lcd.print("        ");
+		
 		return;
 	}
 	
@@ -252,6 +264,8 @@ void load_time_data() {
 void timer_1000_cbk() {
 	if (!menu_state.is_running) return;
 	
+	mt_add_seconds(&countdown_time, -1);
+	
 	for (uint8_t i = 0; i < LINES_COUNT; i++) {
 		if (mt_eq(&timer_1000.time, &lines_datas[i])) {
 			lines_set(i, false);
@@ -268,6 +282,7 @@ void timer_1000_cbk() {
 	
 	if (!has_unfinished_lines) {
 		menu_state.is_running = false;
+		
 		redraw_display(CM_Menu | CM_Menu | CM_CursorPos);
 		for (uint8_t i = 0; i < LINES_COUNT; i++) {
 			lines_set(i, false);
