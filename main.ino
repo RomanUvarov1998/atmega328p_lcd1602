@@ -27,6 +27,8 @@ TimeData lines_datas[LINES_COUNT] = {
 	{ .hh = 12, .mm = 34, .ss = 56 },
 	{ .hh = 12, .mm = 34, .ss = 56 },
 	{ .hh = 12, .mm = 34, .ss = 56 },
+	{ .hh = 12, .mm = 34, .ss = 56 },
+	{ .hh = 12, .mm = 34, .ss = 56 },
 };
 
 TimerInfo timer_1000;
