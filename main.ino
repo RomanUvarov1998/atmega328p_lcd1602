@@ -18,7 +18,7 @@ uint8_t btns_state = 0x00;
 #define	BTN_MSK_OK 			0x02
 #define	BTN_MSK_RIGHT 	0x01
 
-uint8_t get_check_btns_msk();
+BtnPress get_check_btns_msk();
 
 #define LINES_COUNT 5
 static_assert(1 <= LINES_COUNT && LINES_COUNT <= 7, "Число линий может быть только от 1 до 7 включительно");
@@ -41,6 +41,7 @@ void save_time_data();
 
 void timer_1000_cbk();
 bool time_changed = false;
+bool timer_is_finished = false;
 
 void setup() {  
 	do_init();
@@ -74,21 +75,11 @@ void do_init() {
 }
 
 void do_process() {
-	uint8_t b_ev = get_check_btns_msk();
-	
-	BtnPress bp;
-	switch (b_ev) {
-		case BTN_MSK_LEFT: 	bp = BP_LEFT; 	break;
-		case BTN_MSK_OK: 		bp = BP_OK; 		break;
-		case BTN_MSK_RIGHT:	bp = BP_RIGHT; 	break;
-		default: bp = 2;
-	}
-	
+	BtnPress bp = get_check_btns_msk();
 	uint8_t change_msk = 0;
 	bool should_save = false;
-	if (bp != 2) {
-		process_btn(&menu_state, bp, lines_datas, &change_msk, &should_save);
-	}
+	
+	process_btn(&menu_state, bp, lines_datas, &change_msk, &should_save);
 	
 	if (should_save) {
 		save_time_data();
@@ -123,15 +114,20 @@ void do_process() {
 		ti_process(&timer_1000);
 	}
 	
-	if (time_changed) {
-		change_msk |= CM_Value;
+	if (time_changed && menu_state.is_running) {
 		time_changed = false;
+		change_msk |= CM_Value;
+	}
+	
+	if (timer_is_finished) {
+		timer_is_finished = false;
+		change_msk |= CM_Menu | CM_Value | CM_CursorPos;
 	}
 	
 	redraw_display(change_msk);
 }
 
-uint8_t get_check_btns_msk() {
+BtnPress get_check_btns_msk() {
   uint8_t prev_btns_state = btns_state;
 
   btns_state = (PINC >> 3) & 0x07;
@@ -139,13 +135,21 @@ uint8_t get_check_btns_msk() {
 	uint8_t diff = prev_btns_state ^ btns_state;
 	
 	if (btns_state > prev_btns_state) {
-		return diff;
-	} else {
-		return 0;
+		switch (diff) {
+			case BTN_MSK_LEFT: 	return BP_LEFT;
+			case BTN_MSK_OK: 		return BP_OK;
+			case BTN_MSK_RIGHT:	return BP_RIGHT;
+		}
 	}
+	return BP_None;
 }
 
 void redraw_display(uint8_t change_msk) {
+	if (change_msk) {
+		Serial.print("Redraw: ");
+		Serial.println(change_msk);
+	}
+		
 	if (menu_state.is_running) {
 		lcd.setCursor(0, 0);
 		lcd.print("Press OK to stop");
@@ -284,11 +288,14 @@ void timer_1000_cbk() {
 	
 	if (!has_unfinished_lines) {
 		menu_state.is_running = false;
-		
-		redraw_display(CM_Menu | CM_Menu | CM_CursorPos);
 		for (uint8_t i = 0; i < LINES_COUNT; i++) {
 			lines_set(i, false);
 		}
+		
+		Serial.println("--------Finished---------");
+		
+		timer_is_finished = true;
+		// redraw_display(CM_Menu | CM_Value | CM_CursorPos);
 	}
 	
 	time_changed = true;

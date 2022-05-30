@@ -16,10 +16,12 @@ void set_initial_state(MenuState *st, int8_t lines_cnt) {
 }
 
 void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *change_msk, bool *should_save)
-{
+{	
 	*should_save = false;
-	*change_msk |= CM_CursorPos;
+	*change_msk &= ~CM_CursorPos;
 	*change_msk &= ~CM_IsRunning;
+	
+	if (btn == BP_None) return;
 	
 	if (st->is_running && btn == BP_OK) {
 		*change_msk |= CM_IsRunning;
@@ -46,6 +48,7 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 					st->line_cursor_pos = st->line_num * 2;
 					*change_msk &= ~CM_Menu;
 					*change_msk &= ~CM_Value;
+					*change_msk |= CM_CursorPos;
 					break;
 
 				case BP_OK:
@@ -61,6 +64,7 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 						*change_msk |= CM_Menu;
 						*change_msk |= CM_Value;
 					}
+					*change_msk |= CM_CursorPos;
 					break;
 				
 			}
@@ -80,14 +84,15 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 					st->digit_cursor_pos = get_digit_cursor_pos(st);
 					*change_msk &= ~CM_Menu;
 					*change_msk &= ~CM_Value;
+					*change_msk |= CM_CursorPos;
 					break;
 
 				case BP_OK:
 					if (st->digit_num == DIGITS_COUNT) {
 						st->tag = MST_CHOOSE_LINE;
-						st->line_num = 0;
 						*change_msk |= CM_Menu;
 						*change_msk |= CM_Value;
+						*change_msk |= CM_CursorPos;
 						if (has_unsaved_changes) {
 							*should_save = true;
 							has_unsaved_changes = false;
@@ -97,6 +102,7 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 						*change_msk |= CM_Menu;
 						*change_msk &= ~CM_Value;
 					}
+					*change_msk |= CM_CursorPos;
 					break;
 				
 			}
@@ -110,6 +116,7 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 					move_digit(st, btn, &time_datas[st->line_num]);
 					*change_msk &= ~CM_Menu;
 					*change_msk |= CM_Value;
+					*change_msk |= CM_CursorPos;
 					has_unsaved_changes = true;
 					break;
 
@@ -117,6 +124,7 @@ void process_btn(MenuState *st, BtnPress btn, TimeData *time_datas, uint8_t *cha
 					st->tag = MST_CHOOSE_DIGIT;
 					*change_msk |= CM_Menu;
 					*change_msk &= ~CM_Value;
+					*change_msk |= CM_CursorPos;
 					break;
 				
 			}

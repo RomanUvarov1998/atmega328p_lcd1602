@@ -29,7 +29,8 @@ typedef struct {
 typedef enum {
 	BP_LEFT = -1,
 	BP_RIGHT = 1,
-	BP_OK = 0,
+	BP_OK = 2,
+	BP_None = 0,
 } BtnPress;
 
 void set_initial_state(MenuState *st, int8_t lines_cnt);
